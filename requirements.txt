@@ -1,0 +1,7 @@
+django
+PIL
+south
+IPython
+psycopg2
+django-haystack
+pysolr

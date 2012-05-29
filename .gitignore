@@ -1,0 +1,6 @@
+*.pyc
+*.sql
+log.*
+snapshots
+sourcedata
+pip*

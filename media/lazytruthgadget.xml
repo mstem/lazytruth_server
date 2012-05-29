@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Module>
+  
+<ModulePrefs title="LazyTruth" description="Here's what we found:" height="20" author="Matt Stempeck,Justin Nowell, and Stefan Fox" author_email="jrnowell@gmail.com" author_location="Boston, MA">
+
+    
+<!-- Declare feature dependencies. -->
+
+    
+<!-- This one is not specific to Gmail contextual gadgets. -->
+    
+<Require feature="dynamic-height"/>
+<Require feature="osapi" />
+    
+<!-- The next feature, Caja, is optional, and is supported for
+     use only within test domains. Uncomment the tag only for
+     non-production gadgets. -->
+    
+<!-- <Require feature="caja"/> -->
+
+    
+<!-- The next feature, google.contentmatch, is required for all
+     Gmail contextual gadgets.
+     <Param> - specify one or more comma-separated extractor IDs in
+     a param named "extractors". This line is overridden by the extractor ID
+     in the manifest, but is still expected to be present. -->
+    <Require feature="google.contentmatch">
+      
+      <Param name="extractors">
+        597463018829:LazyTruthBodyExtractor
+      </Param>
+    </Require>
+
+ 
+</ModulePrefs>
+
+  
+<!-- Define the content type and display location. The settings
+   "html" and "card" are required for all Gmail contextual gadgets. -->
+  
+<Content type="html" view="card">
+    
+<![CDATA[
+      
+<script type="text/javascript">
+        
+        
+matches = google.contentmatch.getContentMatches();
+        
+var matchList = document.createElement('div');
+var extractedText;
+var url="http://lazytruth.media.mit.edu/data/api/0.1/match";
+        
+for (var match in matches) {
+     
+	for (var key in matches[match]) {  
+		var query = matches[match][key];
+		if (query.length > 1000) {
+			query = query.substring(query.length-1000,query.length-1);
+		}
+        	//carefully optimized!
+		var bodyJson = {"text":encodeURIComponent(gadgets.json.stringify(query))};
+		osapi.http.post({
+			'href':url, 
+			'format':'json',
+			'body':bodyJson,
+			'noCache':true
+		}).execute(function(response) {
+			parseData(response.content);
+        	});
+
+
+
+	}
+        
+}
+
+function parseData(json) {
+	if (json.error != null) {
+		 extractedText= document.createTextNode("There was an error processing this email. We apologize for the inconvenience. If you'd like, you can forward this email to ");
+                link = document.createElement("a");
+                link.setAttribute('href','mailto:checkme@lazytruth.com');
+		link.setAttribute('target','_blank');
+                link.innerHTML = "checkme@lazytruth.com";
+                extractedText2 = document.createTextNode(" so that we can investigate the error.");
+                matchList.appendChild(extractedText);
+                matchList.appendChild(link);
+                matchList.appendChild(extractedText2);
+		matchList.style.color='red';
+		matchList.style.fontWeight='bold';
+	}
+	else if (json.matched == true) {
+    		extractedText = document.createTextNode(json.fact_text);  
+		var debunkText = document.createElement("span");
+		srcIcon = document.createElement("img"); 
+		srcIcon.setAttribute('src','http://lazytruth.media.mit.edu'+json.source_icon_url); 
+		srcIcon.style.paddingRight='0.5em'; 
+		debunkText.innerHTML = json.fact_text;
+		if (json.detail_url != null) {
+			var link = document.createElement("a");
+			link.setAttribute('href',json.detail_url);
+			link.setAttribute('target','_blank');
+			link.setAttribute('style','font-weight:bold;padding-left:5px;font-size:1.1em;color:blue;');
+			link.innerHTML = 'Read more at '+json.source_name;
+			debunkText.appendChild(link);
+		}
+		matchList.appendChild(srcIcon); 
+		matchList.appendChild(debunkText);   
+		if (json.fact_image_url != null) {
+			srcImageDiv = document.createElement("div");
+			srcImage = document.createElement("img");
+			srcImage.setAttribute('src','http://lazytruth.media.mit.edu'+json.fact_image_url);
+			srcImage.setAttribute('width','400');
+			srcImage.setAttribute('height','300');
+			srcImageDiv.setAttribute('align','center');
+			srcImageDiv.setAttribute('style','padding-top:1em;');
+			srcImageDiv.appendChild(srcImage);
+			matchList.appendChild(srcImageDiv);
+		}
+	}    else {
+		extractedText= document.createTextNode("We do not have any information about this email. But that doesn't mean it's true. You can help us out by forwarding it to ");
+		link = document.createElement("a");
+		link.setAttribute('target','_blank');
+		link.setAttribute('href','mailto:checkme@lazytruth.com');
+		link.innerHTML = "checkme@lazytruth.com";
+		extractedText2 = document.createTextNode(".");
+		matchList.appendChild(extractedText);
+		matchList.appendChild(link);
+		matchList.appendChild(extractedText2);
+	}		  
+	matchList.style.fontSize="0.8em"; 
+	matchList.style.padding="0.5em";
+   	
+	document.body.appendChild(matchList);
+	gadgets.window.adjustHeight();
+}
+           
+</script>
+    ]]>
+  
+</Content>
+
+</Module>

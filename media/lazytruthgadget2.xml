@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Module>
+  
+<ModulePrefs title="LazyTruth" description="Here's what we found:" height="20" author="Matt Stempeck and Justin Nowell" author_email="jrnowell@gmail.com" author_location="Boston, MA">
+
+    
+<!-- Declare feature dependencies. -->
+
+    
+<!-- This one is not specific to Gmail contextual gadgets. -->
+    
+<Require feature="dynamic-height"/>
+<Require feature="osapi" />
+<Require feature="opensocial-1.0" />
+    
+<!-- The next feature, Caja, is optional, and is supported for
+     use only within test domains. Uncomment the tag only for
+     non-production gadgets. -->
+    
+ <Require feature="caja"/> 
+
+    
+<!-- The next feature, google.contentmatch, is required for all
+     Gmail contextual gadgets.
+     <Param> - specify one or more comma-separated extractor IDs in
+     a param named "extractors". This line is overridden by the extractor ID
+     in the manifest, but is still expected to be present. -->
+    <Require feature="google.contentmatch">
+      
+<Param name="extractors">
+        597463018829:LazyTruthBodyExtractor
+      </Param>
+    </Require>
+
+ 
+</ModulePrefs>
+
+  
+<!-- Define the content type and display location. The settings
+   "html" and "card" are required for all Gmail contextual gadgets. -->
+  
+<Content type="html" view="card">
+    
+<![CDATA[
+      
+<!-- Start with Single Sign-On -->
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>      
+<script type="text/javascript">
+        
+<!-- Fetch the array of content matches. -->
+        
+matches = google.contentmatch.getContentMatches();
+        
+var matchList = document.createElement('div');
+var extractedText;
+var url="http://lazytruth.media.mit.edu/data/api/0.1/match";
+<!-- Iterate through the array and display output for each match. -->
+        
+for (var match in matches) {
+     
+	for (var key in matches[match]) {  
+		var query = matches[match][key];
+		if (query.length > 1000) {
+			query = query.substring(query.length-1000,query.length-1);
+		}
+		//var query = "Just take this last item: In the last two years we have accumulated national debt at a rate more than 27 times as fast as during the rest of our entire nation's history. Over 27 times as fast! Metaphorically, speaking, if you are driving in the right lane doing 65 MPH and a car rockets past you in the left lane 27 times faster . .. . it would be doing 1,755 MPH! This is a disaster!"
+		alert("QUERY OF "+query);
+		var bodyJson = {"text":query};
+		var postdata = gadgets.json.stringify(bodyJson);
+		osapi.http.post({
+			'href':url, 
+			'format':'json',
+			'body':postdata,
+			'noCache':true
+		}).execute(function(response) {
+			parseData(response.content);
+        	});
+	}
+        
+}
+
+function parseData(json) {
+	if (json.matched == true) {
+    		extractedText = document.createTextNode(json.fact_text);  
+		var debunkText = document.createElement("span");
+		srcIcon = document.createElement("img"); 
+		srcIcon.setAttribute('src','http://lazytruth.media.mit.edu'+json.source_icon_url); 
+		srcIcon.style.paddingRight='0.5em'; 
+		debunkText.setAttribute('style','font-size:80%;');
+		debunkText.innerHTML = json.fact_text;
+		if (json.detail_url != null) {
+			var link = document.createElement("a");
+			link.setAttribute('href',json.detail_url);
+			link.setAttribute('style','font-weight:bold;padding-left:5px;font-size:1.1em;color:blue;');
+			link.innerHTML = 'Read more at '+json.source_name;
+			debunkText.appendChild(link);
+		}
+		matchList.appendChild(srcIcon); 
+		matchList.appendChild(debunkText);   
+		if (json.fact_image_url != null) {
+			srcImageDiv = document.createElement("div");
+			srcImage = document.createElement("img");
+			srcImage.setAttribute('src','http://lazytruth.media.mit.edu'+json.fact_image_url);
+			srcImage.setAttribute('width','400');
+			srcImage.setAttribute('height','300');
+			srcImageDiv.setAttribute('align','center');
+			srcImageDiv.setAttribute('style','padding-top:1em;');
+			srcImageDiv.appendChild(srcImage);
+			matchList.appendChild(srcImageDiv);
+			gadgets.window.adjustHeight(380);
+		}  else {
+			gadgets.window.adjustHeight(50);
+		}
+	}    else {
+		extractedText= document.createTextNode("We do not have any information about this email. But that doesn't mean it's true. You can help us out by forwarding it to ");
+		link = document.createElement("a");
+		link.setAttribute('href','mailto:checkme@lazytruth.com');
+		link.innerHTML = "checkme@lazytruth.com";
+		extractedText2 = document.createTextNode(".");
+		matchList.appendChild(extractedText);
+		matchList.appendChild(link);
+		matchList.appendChild(extractedText2);
+		gadgets.window.adjustHeight(50);
+	}		  
+	matchList.style.fontSize="0.9em"; 
+	matchList.style.padding="0.5em";
+   	
+	document.body.appendChild(matchList);
+}
+           
+</script>
+    ]]>
+  
+</Content>
+
+</Module>

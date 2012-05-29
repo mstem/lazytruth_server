@@ -4,3 +4,4 @@ log.*
 snapshots
 sourcedata
 pip*
+initial.json

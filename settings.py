@@ -151,6 +151,13 @@ LOGGING = {
     }
 }
 
+try:
+       from localsettings import *
+except ImportError:
+       pass 
+
+and echo "localsettings.py" >> .gitignore
+
 
 API_VERSION = '0.1'
 
